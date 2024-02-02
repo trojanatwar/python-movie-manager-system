@@ -1,9 +1,9 @@
 
 import csv
 from tempfile import NamedTemporaryFile
-import shutil
 from os.path import abspath
-import tempfile
+
+import logging
 
 from matplotlib import pyplot as plt
 
@@ -28,9 +28,7 @@ def top_n_highest_rated_movies(movies_data, number = 10):
         title = [movie_title['Title'] for movie_title in movies_data if movie_title['imdbId'] == movie_id]
         genre = [movie_title['Genre'] for movie_title in movies_data if movie_title['imdbId'] == movie_id]
         top_n_highest_rated_movies.append({"Title": title[0], "score": score, "Genre": genre[0]})
-        # print(f"{i + 1}. {title[0]}: {score}")
-    
-    print(top_n_highest_rated_movies)
+        print(f"{i + 1}. {title[0]}: {score}")
     
     return top_n_highest_rated_movies
 
@@ -104,15 +102,23 @@ def update_movie_rating(movies_data, movie_id, movie_score):
             updated_movie.append(row)
         updated_movie.append(movie)
 
-    with open(abspath("movies.csv"), "w", newline='', encoding="utf-8") as csvfile:
-        fieldnames = ["imdbId", "Imdb Link", "Title", "IMDB Score", "Genre", "Poster"]
-        writer = csv.DictWriter(csvfile, delimiter=',', fieldnames=fieldnames) 
-        writer.writerow(dict((heads, heads) for heads in fieldnames))
-        writer.writerows(updated_movie)      
+    try:
+        with open(abspath("movies.csv"), "w", newline='', encoding="utf-8") as csvfile:
+            fieldnames = ["imdbId", "Imdb Link", "Title", "IMDB Score", "Genre", "Poster"]
+            writer = csv.DictWriter(csvfile, delimiter=',', fieldnames=fieldnames) 
+            writer.writerow(dict((heads, heads) for heads in fieldnames))
+            writer.writerows(updated_movie)      
+    except FileNotFoundError as exc:
+        logging.error(f"Exception occurred while writing to CSV file with Error {exc}")
 
     csvfile.close()
 
+    print("File updated!")
+
 def recommend_movie(rows):
+    """
+        This function takes movies list and recommends movie based on users preferred Genre and highest rating for that genre.
+    """
     movies_by_genre = filter_movies_by_genre(rows, "Action")
 
     top_highest_rated_movies = top_n_highest_rated_movies(movies_by_genre, 5)
@@ -132,35 +138,39 @@ def plot_distribution_chart(rows):
     plt.show()
     
 def main():
-    movie_data_file = open(abspath("movies.csv"), encoding="utf8", errors="ignore")
+
+    try:
+        movie_data_file = open(abspath("movies.csv"), encoding="utf8", errors="ignore")
+    
+    except (FileNotFoundError, AttributeError) as exc:
+        logging.error(f"Exception occurred while reading CSV file with error: {exc}")
     
     # Task 1
     csv_data = csv.DictReader(movie_data_file)
     rows = []
     for row in csv_data:
         rows.append(row)
+
+    print(rows[1:10])
     
-    # total_movies = total_number_of_movies(rows)
-    # print(f"Total number of movies: {total_movies}")
+    total_movies = total_number_of_movies(rows)
+    print(f"Total number of movies: {total_movies}")
 
     # # Task 2
-    # get_average_score_of_all_movies(rows)
-    # top_n_highest_rated_movies(rows, 10)
+    get_average_score_of_all_movies(rows)
+    top_n_highest_rated_movies(rows, 10)
 
     # Task 3
-    # filter_movies_by_genre(rows, "Comedy")
-    # find_and_display_unique_genre(rows)
+    filter_movies_by_genre(rows, "Comedy")
+    find_and_display_unique_genre(rows)
         
     # Task 4
-    # update_movie_rating(rows, "114709", "8.5")
-    # recommend_movie(rows)
+    update_movie_rating(rows, "114709", "8.5")
+    recommend_movie(rows)
         
     # Task 5
     plot_distribution_chart(rows)
     
-
-
-
 
 if __name__ == "__main__":
     main()
